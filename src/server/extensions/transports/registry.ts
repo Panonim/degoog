@@ -10,7 +10,7 @@ import {
 } from "../../utils/plugin-settings";
 import { transportsDir } from "../../utils/paths";
 import { createRegistry } from "../registry-factory";
-import { extensionReadmeExists } from "../../utils/extension-docs";
+import { extensionReadmeExists, registerExtensionFolder } from "../../utils/extension-docs";
 import { stupidSettingIDtoAvoidConflicts } from "../extension-id";
 
 const _builtins: Transport[] = [
@@ -53,6 +53,7 @@ const registry = createRegistry<Transport>({
     if (_builtins.some((t) => t.name === name)) return;
     instance.name = name;
     _legacyNameByCanonical.set(name, legacyName);
+    registerExtensionFolder(`transport-${name}`, folderName);
     if (instance.configure) {
       const { settingsId, fallbackSettingsIds } =
         stupidSettingIDtoAvoidConflicts({

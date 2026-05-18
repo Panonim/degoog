@@ -1,4 +1,3 @@
-import { logger } from "../../server/utils/logger";
 import type { UovadipasquaClientStorageBinding } from "../../server/types";
 import { getBase } from "./base-url";
 
@@ -91,7 +90,7 @@ export async function applyUovaStorage(): Promise<void> {
         };
         await mod.restore?.({ apiBase });
       } catch (err) {
-        logger.warn("uovadipasqua", `restore failed for "${extensionId}"`, err);
+        console.warn(`[uovadipasqua] restore failed for "${extensionId}"`, err);
       }
     }),
   );
@@ -145,11 +144,11 @@ export async function triggerUovadipasqua(query: string): Promise<void> {
             await mod.run({ query: trimmed, assets: match.assets, apiBase: match.apiBase });
           }
         } catch (err) {
-          logger.warn("uovadipasqua", `failed to run "${match.id}"`, err);
+          console.warn(`[uovadipasqua] failed to run "${match.id}"`, err);
         }
       })();
     }
   } catch (err) {
-    logger.warn("uovadipasqua", "match request failed", err);
+    console.warn("[uovadipasqua] match request failed", err);
   }
 }
