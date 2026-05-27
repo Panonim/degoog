@@ -2,7 +2,6 @@ import {
   type EngineConfig,
   type ExtensionMeta,
   type SearchEngine,
-  type SearchType,
   type SettingField,
   type Translate,
   ExtensionStoreType,
@@ -25,12 +24,7 @@ import { readFileSync } from "fs";
 import { createRegistry } from "../registry-factory";
 import { extensionReadmeExists } from "../../utils/extension-docs";
 
-export type EngineSearchType =
-  | "web"
-  | "images"
-  | "videos"
-  | "news"
-  | (string & {});
+export type EngineSearchType = string;
 
 export const ENGINE_IDS = [] as readonly string[];
 export type EngineId = string;
@@ -38,11 +32,23 @@ export type EngineId = string;
 interface PluginEntry {
   id: string;
   displayName: string;
-  searchType: EngineSearchType;
+  searchTypes: string[];
   description?: string;
   instance: SearchEngine;
   disabledByDefault?: boolean;
 }
+
+const resolveTypes = (
+  baseTypes: string[],
+  override: string | null,
+): string[] => {
+  if (override)
+    return override
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+  return baseTypes;
+};
 
 const isSearchEngine = (val: unknown): val is SearchEngine => {
   return (
@@ -65,13 +71,18 @@ const engineRegistry = createRegistry<PluginEntry>({
         ? new (Export as new () => SearchEngine)()
         : (Export as SearchEngine);
     if (!isSearchEngine(instance)) return null;
+    const modType = mod.type;
+    const searchTypes: string[] = Array.isArray(modType)
+      ? modType.filter(
+          (t): t is string => typeof t === "string" && t.trim() !== "",
+        )
+      : typeof modType === "string" && modType.trim()
+        ? [modType as string]
+        : ["web"];
     return {
       id: "",
       displayName: instance.name,
-      searchType:
-        typeof mod.type === "string" && (mod.type as string).trim()
-          ? (mod.type as string)
-          : "web",
+      searchTypes: searchTypes.length > 0 ? searchTypes : ["web"],
       description:
         typeof mod.description === "string" ? mod.description : undefined,
       instance,
@@ -101,7 +112,7 @@ export const getEngineRegistry = (): {
     id: e.id,
     displayName: e.displayName,
     disabledByDefault: e.disabledByDefault,
-    searchType: e.searchType,
+    searchType: e.searchTypes.find((t) => t !== "web") ?? "web",
   }));
 
 export const getEffectiveEngineRegistry = async (): Promise<
@@ -113,13 +124,17 @@ export const getEffectiveEngineRegistry = async (): Promise<
   }[]
 > => {
   return Promise.all(
-    engineRegistry.items().map(async (e) => ({
-      id: e.id,
-      displayName: e.displayName,
-      disabledByDefault: e.disabledByDefault,
-      searchType: ((await getTypeOverride(e.id)) ??
-        e.searchType) as EngineSearchType,
-    })),
+    engineRegistry.items().map(async (e) => {
+      const override = await getTypeOverride(e.id);
+      const types = resolveTypes(e.searchTypes, override);
+      const primaryType = types.find((t) => t !== "web") ?? "web";
+      return {
+        id: e.id,
+        displayName: e.displayName,
+        disabledByDefault: e.disabledByDefault,
+        searchType: primaryType,
+      };
+    }),
   );
 };
 
@@ -128,25 +143,28 @@ export const getEngineMap = (): Record<string, SearchEngine> =>
 
 export const getEnginesForCustomType = async (
   engineType: string,
+  config?: EngineConfig,
 ): Promise<{ id: string; instance: SearchEngine }[]> => {
   const results: { id: string; instance: SearchEngine }[] = [];
   for (const e of engineRegistry.items()) {
+    if (config && !config[e.id]) continue;
     if (await isDisabled(e.id)) continue;
-    const effectiveType = (await getTypeOverride(e.id)) ?? e.searchType;
-    if (effectiveType === engineType)
+    const override = await getTypeOverride(e.id);
+    const types = resolveTypes(e.searchTypes, override);
+    if (types.includes(engineType))
       results.push({ id: e.id, instance: e.instance });
   }
   return results;
 };
 
-const BUILTIN_TYPES = new Set(["web", "news", "images", "videos"]);
-
 export const getCustomEngineTypes = async (): Promise<string[]> => {
   const types = new Set<string>();
   for (const e of engineRegistry.items()) {
     if (await isDisabled(e.id)) continue;
-    const effectiveType = (await getTypeOverride(e.id)) ?? e.searchType;
-    if (!BUILTIN_TYPES.has(effectiveType)) types.add(effectiveType);
+    const override = await getTypeOverride(e.id);
+    for (const t of resolveTypes(e.searchTypes, override)) {
+      if (t !== "web") types.add(t);
+    }
   }
   return [...types];
 };
@@ -156,7 +174,9 @@ export const getEngineSearchType = async (
 ): Promise<string | null> => {
   const plugin = engineRegistry.items().find((e) => e.id === engineId);
   if (!plugin) return null;
-  return (await getTypeOverride(engineId)) ?? plugin.searchType;
+  const override = await getTypeOverride(plugin.id);
+  const types = resolveTypes(plugin.searchTypes, override);
+  return types.find((t) => t !== "web") ?? types[0] ?? "web";
 };
 
 const engineRequiresConfig = (engine: SearchEngine): boolean => {
@@ -179,31 +199,15 @@ const hasRequiredConfig = async (
   });
 };
 
-export const getEnginesForSearchType = async (
-  type: SearchType,
-  config: EngineConfig,
-): Promise<{ id: string; instance: SearchEngine }[]> => {
-  if (!type) return [];
-
-  const active: { id: string; instance: SearchEngine }[] = [];
-  for (const e of engineRegistry.items()) {
-    if (!config[e.id]) continue;
-    const typeOverride = (await getTypeOverride(e.id)) ?? e.searchType;
-    if (typeOverride === type) {
-      active.push({ id: e.id, instance: e.instance });
-    }
-  }
-  return active;
-};
-
 export const getActiveWebEngines = async (
   config: EngineConfig,
 ): Promise<{ id: string; instance: SearchEngine; score: number }[]> => {
   const active: { id: string; instance: SearchEngine; score: number }[] = [];
   for (const e of engineRegistry.items()) {
     if (!config[e.id]) continue;
-    const effectiveType = (await getTypeOverride(e.id)) ?? e.searchType;
-    if (effectiveType !== "web") continue;
+    const override = await getTypeOverride(e.id);
+    const types = resolveTypes(e.searchTypes, override);
+    if (!types.includes("web")) continue;
     if (
       engineRequiresConfig(e.instance) &&
       !(await hasRequiredConfig(e.id, e.instance))
@@ -371,7 +375,10 @@ export const getEngineExtensionMeta = async (
 
     const pluginT = entry.instance.t;
     const engineSchemaFiltered = engineSchema.filter(
-      (f) => f.key !== "outgoingTransport" && f.key !== "score",
+      (f) =>
+        f.key !== "outgoingTransport" &&
+        f.key !== "score" &&
+        f.key !== "searchTypeOverride",
     );
     const translatedEngineSchema = pluginT
       ? engineSchemaFiltered.map((field) => {
@@ -399,17 +406,23 @@ export const getEngineExtensionMeta = async (
         })
       : engineSchemaFiltered;
 
-    const effectiveType = (await getTypeOverride(entry.id)) ?? entry.searchType;
+    const override = await getTypeOverride(entry.id);
+    const effectiveTypes = resolveTypes(
+      entry.searchTypes,
+      override,
+    );
+    const primaryType = effectiveTypes.find((t) => t !== "web") ?? "web";
 
+    const typesDisplay = entry.searchTypes.join(",");
     const typeOverrideField: SettingField = {
       key: "searchTypeOverride",
-      label: "Engine type",
+      label: "Engine type override",
       type: "text",
-      default: entry.searchType,
+      default: typesDisplay,
       description:
-        "Override the tab this engine belongs to. Leave blank to use the default.",
+        "Override which tabs this engine runs in. Use a single type (e.g. images) or comma-separated for multiple (e.g. web,keywords). Leave blank to use the default.",
       advanced: true,
-      placeholder: entry.searchType,
+      placeholder: typesDisplay,
     };
 
     const schema: SettingField[] = [
@@ -429,7 +442,7 @@ export const getEngineExtensionMeta = async (
       id: entry.id,
       displayName: entry.displayName,
       description: entry.description ?? "",
-      searchType: effectiveType,
+      searchType: primaryType,
       type: ExtensionStoreType.Engine,
       configurable: true,
       settingsSchema: schema,

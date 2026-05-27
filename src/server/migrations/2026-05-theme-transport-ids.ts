@@ -319,13 +319,6 @@ const _canonicalSettingId = (
 };
 
 export const runThemeTransportIds052028 = async (): Promise<void> => {
-  const reposData = await readReposData();
-  const mappings = await _collectManifestAliases(reposData);
-
-  await _renameFolders(themesDir(), mappings.themeAliases, "theme");
-  await _renameFolders(autocompleteDir(), mappings.autocompleteAliases, "autocomplete");
-  await _syncInstalledAs(reposData);
-
   const settingsPath = pluginSettingsFile();
   const store = await _readJson<SettingsStore>(settingsPath);
   if (!store) return;
@@ -333,6 +326,13 @@ export const runThemeTransportIds052028 = async (): Promise<void> => {
   const existingVersion =
     typeof store[SCHEMA_KEY] === "number" ? (store[SCHEMA_KEY] as number) : 0;
   if (existingVersion >= MIGRATION_VERSION) return;
+
+  const reposData = await readReposData();
+  const mappings = await _collectManifestAliases(reposData);
+
+  await _renameFolders(themesDir(), mappings.themeAliases, "theme");
+  await _renameFolders(autocompleteDir(), mappings.autocompleteAliases, "autocomplete");
+  await _syncInstalledAs(reposData);
 
   const keys = Object.keys(store).filter((k) => !k.startsWith("__"));
   const rewrites: Array<{ legacyKey: string; canonicalId: string }> = [];

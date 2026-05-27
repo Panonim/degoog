@@ -9,6 +9,7 @@ import {
   readReposData,
   writeReposData,
 } from "../extensions/store/persistence";
+import { ExtensionStoreType } from "../types";
 
 export const MIGRATION_VERSION = 52027 as const;
 const SCHEMA_KEY = "__schemaVersion";
@@ -86,6 +87,11 @@ const _syncInstalledAs = async (): Promise<boolean> => {
   let changed = false;
 
   for (const item of data.installed) {
+    if (
+      item.type === ExtensionStoreType.Theme ||
+      item.type === ExtensionStoreType.Autocomplete
+    )
+      continue;
     const itemPath = item.itemPath.replace(/\/$/, "");
     const expected = folderNameForItem(item.repoUrl, itemPath);
     if (item.installedAs === expected) continue;

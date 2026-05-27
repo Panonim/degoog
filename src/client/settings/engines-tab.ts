@@ -9,12 +9,12 @@ import { renderMdInline } from "../utils/md";
 const t = window.scopedT("core");
 const themeT = window.scopedT("themes/degoog");
 
-const TAB_TYPES = new Set(["web", "images", "videos", "news"]);
-
-const _typeLabel = (type: string): string =>
-  TAB_TYPES.has(type)
-    ? themeT(`search-templates.tabs.${type}`)
+const _typeLabel = (type: string): string => {
+  const translated = themeT(`search-templates.tabs.${type}`);
+  return translated !== `search-templates.tabs.${type}`
+    ? translated
     : type.charAt(0).toUpperCase() + type.slice(1);
+};
 
 const _groupByType = (
   engines: ExtensionMeta[],

@@ -37,11 +37,24 @@ onInvalidate((payload) => {
   cache = null;
 });
 
+const _lowerKeys = (store: PluginSettingsStore): PluginSettingsStore => {
+  const out: PluginSettingsStore = {};
+  for (const [k, v] of Object.entries(store)) {
+    if (k.startsWith("__")) {
+      out[k] = v;
+      continue;
+    }
+    const lower = k.toLowerCase();
+    out[lower] = out[lower] ? { ...v, ...out[lower] } : v;
+  }
+  return out;
+};
+
 const load = async (): Promise<PluginSettingsStore> => {
   if (cache) return cache;
   try {
     const raw = await readFile(pluginSettingsFile(), "utf-8");
-    cache = JSON.parse(raw) as PluginSettingsStore;
+    cache = _lowerKeys(JSON.parse(raw) as PluginSettingsStore);
     loadFailed = false;
   } catch (e: unknown) {
     cache = {};

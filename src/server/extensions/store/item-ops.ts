@@ -192,6 +192,39 @@ async function installDependencies(dependencies: string[]): Promise<void> {
   }
 }
 
+const ENGINE_TYPE_STRING_RE = /export\s+const\s+type\s*=\s*["']([^"']+)["']/;
+const ENGINE_TYPE_ARRAY_RE =
+  /export\s+const\s+type\s*=\s*\[([^\]]+)\]/;
+const engineTypeCache = new Map<string, string | null>();
+
+const readEngineType = async (dir: string): Promise<string | null> => {
+  if (engineTypeCache.has(dir)) return engineTypeCache.get(dir) ?? null;
+  let result: string | null = null;
+  for (const file of ["index.js", "index.ts"]) {
+    try {
+      const src = await readFile(join(dir, file), "utf-8");
+      const strMatch = ENGINE_TYPE_STRING_RE.exec(src);
+      if (strMatch) {
+        result = strMatch[1].trim();
+        break;
+      }
+      const arrMatch = ENGINE_TYPE_ARRAY_RE.exec(src);
+      if (arrMatch) {
+        const types = arrMatch[1]
+          .split(",")
+          .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+          .filter(Boolean);
+        result = types.find((t) => t !== "web") ?? types[0] ?? null;
+        break;
+      }
+    } catch {
+      continue;
+    }
+  }
+  engineTypeCache.set(dir, result);
+  return result;
+};
+
 export async function listRepoItems(repoUrl?: string): Promise<StoreItem[]> {
   const data = await readReposData();
   const repos = repoUrl ? [getRepoByUrl(data, repoUrl)] : data.repos;
@@ -281,9 +314,9 @@ export async function listRepoItems(repoUrl?: string): Promise<StoreItem[]> {
         };
         if (type === ExtensionStoreType.Plugin && ent.type)
           item.pluginType = ent.type;
-        if (type === ExtensionStoreType.Engine) {
-          item.engineType = ent.type ?? "web";
-        }
+        if (type === ExtensionStoreType.Engine)
+          item.engineType =
+            ent.type ?? (await readEngineType(fullPath)) ?? "web";
         items.push(item);
       }
     };
@@ -453,8 +486,15 @@ async function _updateItem(
   const manifest = entries?.find(
     (e) => e.path.replace(/\/$/, "") === normalizedPath,
   );
-  const destDir = join(getDestDir(type), inst.installedAs);
-  await rm(destDir, { recursive: true, force: true }).catch(() => {});
+  const destBase = getDestDir(type);
+  const destDir = join(destBase, inst.installedAs);
+  const lowerTarget = inst.installedAs.toLowerCase();
+  const siblings = await readdir(destBase).catch(() => [] as string[]);
+  for (const entry of siblings) {
+    if (entry.toLowerCase() === lowerTarget) {
+      await rm(join(destBase, entry), { recursive: true, force: true }).catch(() => {});
+    }
+  }
   await copyItemDir(srcDir, destDir, STORE_METADATA);
   if (manifest?.version) inst.version = manifest.version;
   if (manifest?.minDegoogVersion)

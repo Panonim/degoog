@@ -18,8 +18,9 @@ export const makeExtID = (
   folderName: string,
   kind: ExtensionKind,
 ): string => {
+  const lower = folderName.toLowerCase();
   const suffix = `-${kind}`;
-  return folderName.endsWith(suffix) ? folderName : `${folderName}${suffix}`;
+  return lower.endsWith(suffix) ? lower : `${lower}${suffix}`;
 };
 
 export const folderFromExtID = (id: string, kind: ExtensionKind): string => {

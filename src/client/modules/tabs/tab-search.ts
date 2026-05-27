@@ -30,8 +30,8 @@ export async function performTabSearch(
 ): Promise<void> {
   if (!query.trim()) return;
 
-  void import("../filters/image-filters").then(
-    ({ syncImgFilters }) => syncImgFilters(`tab:${tabId}`),
+  void import("../filters/image-filters").then(({ syncImgFilters }) =>
+    syncImgFilters(`tab:${tabId}`),
   );
 
   const isInit = state.isInitialLoad;
@@ -161,7 +161,7 @@ export async function performTabSearch(
         (q) => void performTabSearch(q, tabId),
         kpPanels.length > 0 ? { sidebarTopPanels: kpPanels } : undefined,
       );
-    } catch { }
+    } catch {}
   })();
 }
 

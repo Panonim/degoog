@@ -139,7 +139,7 @@ const _mergeIntoMap = (
     } else {
       urlMap.set(normalized, {
         ...r,
-        title: stripHtml(r.title),
+        title: stripCssBlocks(stripHtml(r.title)),
         snippet: stripCssBlocks(stripHtml(r.snippet)),
         url: _cleanUrl(r.url),
         score: positionScore,

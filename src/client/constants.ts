@@ -10,9 +10,3 @@ export const POST_METHOD_ENABLED = "post_method_enabled";
 export const INLINE_GIF_PLAYBACK = "inline_gif_playback";
 export const PER_PAGE = 10;
 export const MAX_PAGE = 10;
-export const BUILTIN_SEARCH_TYPES = new Set([
-  "web",
-  "images",
-  "videos",
-  "news",
-]);

@@ -1,4 +1,4 @@
-import { BUILTIN_SEARCH_TYPES, MAX_PAGE } from "../../constants";
+import { MAX_PAGE } from "../../constants";
 import {
   closeMediaPreview,
   destroyMediaObserver,
@@ -82,12 +82,9 @@ export async function performSearch(
     const prefix = prefixMatch[1].toLowerCase();
     const actualQuery = prefixMatch[2].trim();
     if (actualQuery) {
-      if (prefix !== "web" && BUILTIN_SEARCH_TYPES.has(prefix)) {
-        return performSearch(actualQuery, prefix, page);
-      }
       const { getPluginTabIds } = await import("../../modules/tabs/tabs");
       const knownTypes = await getPluginTabIds();
-      if (knownTypes.has(prefix)) {
+      if (prefix !== "web" && knownTypes.has(prefix)) {
         const { performTabSearch } =
           await import("../../modules/tabs/tab-search");
         return performTabSearch(actualQuery, `engine:${prefix}`, page);

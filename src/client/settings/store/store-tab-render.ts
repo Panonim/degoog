@@ -48,11 +48,6 @@ export function pluginTypeLabel(t: string): string {
 }
 
 export function engineTypeLabel(t: string): string {
-  if (t === "web") return "Web";
-  if (t === "images") return "Images";
-  if (t === "videos") return "Videos";
-  if (t === "news") return "News";
-
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 

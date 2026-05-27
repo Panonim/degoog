@@ -129,7 +129,7 @@ router.get("/api/search/stream", async (c) => {
     Math.max(1, parseInt(asString(settings.streamingMaxRetries) || "2", 10)),
   );
 
-  const rawActiveEngines = await selectActiveEngines(type, engines, true);
+  const rawActiveEngines = await selectActiveEngines(type, engines);
 
   if (rawActiveEngines.length === 0) {
     return c.json({
