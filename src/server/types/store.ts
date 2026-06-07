@@ -34,6 +34,8 @@ export interface StoreItem {
   engineTypes?: string[];
   minDegoogVersion?: string;
   requiresNewerVersion?: boolean;
+  orphaned?: boolean;
+  untracked?: boolean;
 }
 
 export interface InstalledItem {

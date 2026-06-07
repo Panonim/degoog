@@ -5,7 +5,6 @@ import type { Command } from "../../src/client/types";
 const makeCmd = (trigger: string, opts: Partial<Command> = {}): Command => ({
   id: trigger,
   trigger,
-  name: trigger,
   naturalLanguage: true,
   aliases: [],
   naturalLanguagePhrases: [],

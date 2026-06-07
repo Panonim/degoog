@@ -7,6 +7,7 @@ import { getStoreTabHtml } from "./template";
 import {
   confirmRemoveRepo,
   handleAddRepo,
+  handleDeleteUntracked,
   handleInstall,
   handleRefresh,
   handleRefreshAll,
@@ -252,6 +253,16 @@ export async function initStoreTab(
             "click",
             () => void handleUpdate(btn, getToken, loadItems, render),
           );
+        });
+      grid
+        .querySelectorAll<HTMLButtonElement>(".store-btn-delete")
+        .forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (btn.dataset.untracked === "true")
+              void handleDeleteUntracked(btn, getToken, loadItems, render);
+            else
+              void handleUninstall(btn, getToken, loadItems, render);
+          });
         });
     }
 

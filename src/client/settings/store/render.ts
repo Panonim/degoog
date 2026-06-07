@@ -180,11 +180,17 @@ export function renderItemCard(
     typeLabel = "Theme";
   }
 
-  const btn = item.installed
-    ? item.updateAvailable
-      ? `<span class="ext-configured-badge"></span><button class="btn btn--primary degoog-btn degoog-btn--primary store-btn-update" type="button" data-repo-url="${escapeHtml(item.repoUrl)}" data-item-path="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}">Update</button><button class="btn btn--secondary degoog-btn degoog-btn--secondary store-btn-uninstall" type="button" data-repo-url="${escapeHtml(item.repoUrl)}" data-item-path="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}">Uninstall</button>`
-      : `<span class="ext-configured-badge"></span><button class="btn btn--secondary degoog-btn degoog-btn--secondary store-btn-uninstall" type="button" data-repo-url="${escapeHtml(item.repoUrl)}" data-item-path="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}">Uninstall</button>`
-    : `<button class="btn btn--primary degoog-btn degoog-btn--primary store-btn-install" type="button" data-repo-url="${escapeHtml(item.repoUrl)}" data-item-path="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}">Install</button>`;
+  const dataAttrs = `data-repo-url="${escapeHtml(item.repoUrl)}" data-item-path="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}"`;
+  const deleteBtnAttrs = item.untracked
+    ? `data-untracked="true" data-folder-name="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}"`
+    : dataAttrs;
+  const btn = item.orphaned
+    ? `<span class="ext-configured-badge"></span><button class="btn btn--danger degoog-btn degoog-btn--danger store-btn-delete" type="button" ${deleteBtnAttrs}>Delete</button>`
+    : item.installed
+      ? item.updateAvailable
+        ? `<span class="ext-configured-badge"></span><button class="btn btn--primary degoog-btn degoog-btn--primary store-btn-update" type="button" ${dataAttrs}>Update</button><button class="btn btn--secondary degoog-btn degoog-btn--secondary store-btn-uninstall" type="button" ${dataAttrs}>Uninstall</button>`
+        : `<span class="ext-configured-badge"></span><button class="btn btn--secondary degoog-btn degoog-btn--secondary store-btn-uninstall" type="button" ${dataAttrs}>Uninstall</button>`
+      : `<button class="btn btn--primary degoog-btn degoog-btn--primary store-btn-install" type="button" ${dataAttrs}>Install</button>`;
   return `
     <div class="store-card" data-repo-url="${escapeHtml(item.repoUrl)}" data-item-path="${escapeHtml(item.path)}" data-type="${escapeHtml(item.type)}" data-plugin-type="${escapeHtml(item.pluginType || "")}" data-engine-type="${escapeHtml(item.engineType || "")}">
       <div class="store-card-thumb-wrap${clickableClass}"${screenshotsData}${thumbA11y}>${thumb}</div>

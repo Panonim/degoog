@@ -151,6 +151,41 @@ export async function handleUninstall(
   }
 }
 
+export async function handleDeleteUntracked(
+  btn: HTMLButtonElement,
+  getToken: () => string | null,
+  loadItems: () => Promise<void>,
+  render: () => void,
+): Promise<void> {
+  const { folderName, type } = btn.dataset;
+  if (
+    !(await confirmModal({
+      title: "Delete?",
+      message: `Permanently delete this ${type ?? "extension"} from disk?`,
+    }))
+  )
+    return;
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${getBase()}/api/store/untracked`, {
+      method: "DELETE",
+      headers: jsonHeaders(getToken),
+      body: JSON.stringify({ folderName, type }),
+    });
+    const data = (await res.json()) as { error?: string };
+    if (!res.ok) alert(data.error || "Delete failed");
+    else {
+      await loadItems();
+      render();
+      window.dispatchEvent(new CustomEvent("extensions-saved"));
+    }
+  } catch {
+    alert("Network error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 export async function handleUpdate(
   btn: HTMLButtonElement,
   getToken: () => string | null,
