@@ -1,5 +1,6 @@
 import type { SearchResponse, RichSuggestion } from "../types";
 import { logger } from "./logger";
+import { THREAT_LEVEL } from "./sentinel";
 import {
   INVALIDATE_SCOPE,
   isValkeyEnabled,
@@ -26,6 +27,7 @@ export const SHORT_TTL_MS = _readPositiveIntEnv(
   "DEGOOG_CACHE_SHORT_TTL_MS",
   2 * 60 * 1000,
 );
+export const JUST_INDEXED_TTL_MS = 5_000;
 
 const NS = "cache";
 const SEARCH_NAMESPACE = "search";
@@ -244,6 +246,12 @@ export const clear = (): Promise<string[]> => clearByScope(CACHE_SCOPE.ALL);
 
 export const listCacheNamespaces = (): string[] => Array.from(_registry.keys());
 
-export function hasFailedEngines(response: SearchResponse): boolean {
-  return response.engineTimings.some((et) => et.resultCount === 0);
-}
+const engineErrored = (status: string | undefined): boolean =>
+  status !== undefined && status !== THREAT_LEVEL.OK;
+
+export const someEnginesFailed = (response: SearchResponse): boolean =>
+  response.engineTimings.some((et) => engineErrored(et.status));
+
+export const allEnginesFailed = (response: SearchResponse): boolean =>
+  response.engineTimings.length > 0 &&
+  response.engineTimings.every((et) => engineErrored(et.status));

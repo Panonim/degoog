@@ -1,7 +1,6 @@
 import { access } from "fs/promises";
 import { join } from "path";
 import { enginesDir, pluginsDir, themesDir, transportsDir } from "./paths";
-import { logger } from "./logger";
 
 type ExtensionDocsPath = { readmePath: string; exists: boolean };
 

@@ -25,4 +25,6 @@ export interface StoreItem {
   engineType?: string;
   engineTypes?: string[];
   requiresNewerVersion?: boolean;
+  orphaned?: boolean;
+  untracked?: boolean;
 }

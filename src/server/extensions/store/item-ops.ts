@@ -360,6 +360,70 @@ export async function listRepoItems(repoUrl?: string): Promise<StoreItem[]> {
       await push(ExtensionStoreType.Autocomplete, pkg.autocomplete);
   }
 
+  if (!repoUrl) {
+    const catalogKeys = new Set(
+      items.map((i) => `${normalizeRepoUrl(i.repoUrl)}::${i.type}::${i.path}`),
+    );
+    for (const inst of data.installed) {
+      const key = `${normalizeRepoUrl(inst.repoUrl)}::${inst.type}::${inst.itemPath}`;
+      if (catalogKeys.has(key)) continue;
+      const displayName = inst.itemPath.split("/").pop() ?? inst.installedAs;
+      const repoLabel =
+        inst.repoUrl.replace(/\.git$/, "").split("/").pop() ?? inst.repoUrl;
+      items.push({
+        repoUrl: inst.repoUrl,
+        repoSlug: "",
+        repoName: repoLabel,
+        type: inst.type,
+        path: inst.itemPath,
+        name: displayName,
+        description: "",
+        version: inst.version,
+        author: null,
+        screenshots: [],
+        installed: true,
+        installedVersion: inst.version,
+        updateAvailable: false,
+        orphaned: true,
+      });
+    }
+
+    const managedFolders = new Set(data.installed.map((i) => i.installedAs));
+    for (const type of Object.values(ExtensionStoreType)) {
+      const destDir = STORE_TYPE_SPECS[type].destDir();
+      let entries: string[];
+      try {
+        entries = await readdir(destDir);
+      } catch {
+        continue;
+      }
+      for (const folderName of entries) {
+        if (managedFolders.has(folderName)) continue;
+        try {
+          const s = await stat(join(destDir, folderName));
+          if (!s.isDirectory()) continue;
+        } catch {
+          continue;
+        }
+        items.push({
+          repoUrl: "",
+          repoSlug: "",
+          repoName: "",
+          type,
+          path: folderName,
+          name: folderName,
+          description: "",
+          version: "",
+          author: null,
+          screenshots: [],
+          installed: true,
+          orphaned: true,
+          untracked: true,
+        });
+      }
+    }
+  }
+
   return items;
 }
 
@@ -548,4 +612,23 @@ export async function updateAllItems(): Promise<{ updated: number }> {
 export async function getInstalledItems(): Promise<InstalledItem[]> {
   const data = await readReposData();
   return data.installed;
+}
+
+export function deleteUntracked(
+  type: ExtensionStoreType,
+  folderName: string,
+): Promise<void> {
+  return _storeMutex(() => _deleteUntracked(type, folderName));
+}
+
+async function _deleteUntracked(
+  type: ExtensionStoreType,
+  folderName: string,
+): Promise<void> {
+  const base = resolve(STORE_TYPE_SPECS[type].destDir());
+  const target = resolve(join(base, folderName));
+  if (!target.startsWith(base + "/"))
+    throw new Error("Invalid folder name.");
+  await rm(target, { recursive: true, force: true });
+  await reloadAfterAction(type);
 }

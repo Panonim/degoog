@@ -203,7 +203,7 @@ async function _performSearchWithBang(
   try {
     const [cmdRes, searchRes] = await Promise.all([
       fetch(`${getBase()}/api/command?q=${encodeURIComponent(bangQuery)}`),
-      fetch(searchUrl),
+      fetch(appendSearchAuthParams(searchUrl)),
     ]);
     const searchData = (await searchRes.json()) as SearchResponse;
     const isMediaType = isImageSearchType(type);
@@ -344,6 +344,7 @@ async function _performBangCommand(
       }
       if (resultsMeta)
         resultsMeta.textContent = `About ${data.results?.length ?? 0} results (${((data.totalTime ?? 0) / 1000).toFixed(2)} seconds)`;
+      state.currentPage = page;
       renderResults(data.results ?? []);
       return;
     }

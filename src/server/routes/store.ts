@@ -16,6 +16,7 @@ import {
   updateItem,
   updateAllItems,
   getInstalledItems,
+  deleteUntracked,
   getStoreDirPath,
   resolveScreenshotPath,
   resolveRepoAssetPath,
@@ -236,6 +237,29 @@ router.post("/api/store/update-all", async (c) => {
     return c.json({ ok: true, ...result });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Update failed";
+    return c.json({ error: message }, 400);
+  }
+});
+
+router.delete("/api/store/untracked", async (c) => {
+  if (!(await gandalf(canBalrogPass(c))))
+    return c.json({ error: "You shall not pass!" }, 401);
+  const body = (await c.req.json<{ type?: string; folderName?: string }>().catch(() => ({}))) as {
+    type?: string;
+    folderName?: string;
+  };
+  const { type, folderName } = body;
+  if (!type || !folderName?.trim()) {
+    return c.json({ error: "Missing type or folderName" }, 400);
+  }
+  if (!isValidType(type)) {
+    return c.json({ error: "Invalid type" }, 400);
+  }
+  try {
+    await deleteUntracked(type, folderName.trim());
+    return c.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Delete failed";
     return c.json({ error: message }, 400);
   }
 });
