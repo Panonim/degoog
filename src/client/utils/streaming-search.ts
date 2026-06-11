@@ -37,6 +37,7 @@ import {
 import { buildSearchUrl, imgFilterRecord } from "./url";
 import { appendSearchAuthParams } from "./request";
 import { getBase } from "./base-url";
+import { loadSidebarSuggestions } from "./search/search-actions-render";
 
 const t = window.scopedT("themes/degoog");
 import {
@@ -130,6 +131,7 @@ export async function performStreamingSearch(
   if (pagination) pagination.innerHTML = "";
   const sidebar = document.getElementById("results-sidebar");
   if (sidebar) sidebar.innerHTML = isImageType ? "" : skeletonSidebar();
+  loadSidebarSuggestions(query, type, onComplete);
   clearSlotPanels();
   if (isImageType) {
     abortGlancePanels();

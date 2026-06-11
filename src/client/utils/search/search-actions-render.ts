@@ -9,6 +9,7 @@ import {
   clearSlotPanels,
   renderResults,
   renderSidebar,
+  renderSidebarSuggestions,
   prependKnowledgePanels,
 } from "../../modules/renderer/render";
 import { renderMediaEngineBar } from "../../modules/renderer/render-media";
@@ -26,8 +27,29 @@ import {
 import { isImageSearchType } from "../engines";
 import { imgFilterRecord } from "../url";
 import { getBase } from "../base-url";
+import { fetchSidebarSuggestions } from "./sidebar-suggestions";
 
 type Navigate = (query: string) => void;
+
+let sidebarSuggestionsController: AbortController | null = null;
+
+export const loadSidebarSuggestions = (
+  query: string,
+  type: string,
+  navigate: Navigate,
+): void => {
+  sidebarSuggestionsController?.abort();
+  state.currentRelatedSearches = [];
+  if (isImageSearchType(type) || !state.displaySearchSuggestions) return;
+
+  const ac = new AbortController();
+  sidebarSuggestionsController = ac;
+  void fetchSidebarSuggestions(query, ac.signal).then((terms) => {
+    if (sidebarSuggestionsController !== ac || state.currentQuery !== query) return;
+    state.currentRelatedSearches = terms;
+    renderSidebarSuggestions(terms, navigate);
+  });
+};
 
 export const prepareResultsUi = (query: string, resolvedType: string): void => {
   const isImageType = isImageSearchType(resolvedType);
