@@ -50,7 +50,7 @@ function _buildCurlArgs(
   options: TransportFetchOptions,
   proxyUrl: string | undefined,
 ): string[] {
-  const method = options.method ?? "GET";
+  const method = (options.method ?? "GET").toUpperCase();
   const args = [
     "-sS",
     "-L",
