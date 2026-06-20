@@ -16,6 +16,8 @@ import { bindToggleAutoSave, injectFieldSaveBtns } from "./auto-save";
 import { renderServerContent } from "./render";
 import { flashError, flashSuccess } from "../shared/flash-msg";
 import {
+  PRESET_FIELD_DOM_IDS,
+  PRESET_TOGGLE_KEYS,
   SERVER_SETTINGS_PRESETS,
   type ServerPresetValueKey,
   type ServerPresetValues,
@@ -27,49 +29,6 @@ const t = window.scopedT("core");
 let _apiKey = "";
 let _keyRevealed = false;
 let _currentServerSettings: ServerSettingsData = {};
-
-const PRESET_FIELD_DOM_IDS: Partial<Record<ServerPresetValueKey, string>> = {
-  streamingEnabled: "streaming-enabled",
-  streamingAutoRetry: "streaming-auto-retry",
-  streamingMaxRetries: "streaming-max-retries",
-  rateLimitEnabled: "rate-limit-enabled",
-  rateLimitBurstWindow: "rate-limit-burst-window",
-  rateLimitBurstMax: "rate-limit-burst-max",
-  rateLimitLongWindow: "rate-limit-long-window",
-  rateLimitLongMax: "rate-limit-long-max",
-  rateLimitSuggestEnabled: "rate-limit-suggest-enabled",
-  rateLimitSuggestBurstWindow: "rate-limit-suggest-burst-window",
-  rateLimitSuggestBurstMax: "rate-limit-suggest-burst-max",
-  rateLimitSuggestLongWindow: "rate-limit-suggest-long-window",
-  rateLimitSuggestLongMax: "rate-limit-suggest-long-max",
-  acDebounceMs: "ac-debounce-ms",
-  imageProxyAllowLocal: "image-proxy-allow-local",
-  honeypotEnabled: "honeypot-enabled",
-  honeypotCssCheck: "honeypot-css-check",
-  honeypotBanDuration: "honeypot-ban-duration",
-  apiKeySearchEnabled: "api-key-search-enabled",
-  apiKeySuggestEnabled: "api-key-suggest-enabled",
-  degoogIndexerEnabled: "degoog-indexer-enabled",
-  domainBlockUiEnabled: "domain-block-ui-enabled",
-  domainReplaceUiEnabled: "domain-replace-ui-enabled",
-  domainScoreUiEnabled: "domain-score-ui-enabled",
-};
-
-const PRESET_TOGGLE_KEYS = new Set<ServerPresetValueKey>([
-  "streamingEnabled",
-  "streamingAutoRetry",
-  "rateLimitEnabled",
-  "rateLimitSuggestEnabled",
-  "imageProxyAllowLocal",
-  "honeypotEnabled",
-  "honeypotCssCheck",
-  "apiKeySearchEnabled",
-  "apiKeySuggestEnabled",
-  "degoogIndexerEnabled",
-  "domainBlockUiEnabled",
-  "domainReplaceUiEnabled",
-  "domainScoreUiEnabled",
-]);
 
 const TOGGLE_WRAP_PAIRS = [
   ["proxy-enabled", "proxy-urls-wrap"],

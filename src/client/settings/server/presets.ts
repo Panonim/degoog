@@ -21,32 +21,49 @@ export type ServerSettingsPreset = {
   highlights: ServerPresetValueKey[];
 };
 
-export const SERVER_PRESET_FIELD_KEYS = [
-  "streamingEnabled",
-  "streamingAutoRetry",
-  "streamingMaxRetries",
-  "rateLimitEnabled",
-  "rateLimitBurstWindow",
-  "rateLimitBurstMax",
-  "rateLimitLongWindow",
-  "rateLimitLongMax",
-  "rateLimitSuggestEnabled",
-  "rateLimitSuggestBurstWindow",
-  "rateLimitSuggestBurstMax",
-  "rateLimitSuggestLongWindow",
-  "rateLimitSuggestLongMax",
-  "acDebounceMs",
-  "imageProxyAllowLocal",
-  "honeypotEnabled",
-  "honeypotCssCheck",
-  "honeypotBanDuration",
-  "apiKeySearchEnabled",
-  "apiKeySuggestEnabled",
-  "degoogIndexerEnabled",
-  "domainBlockUiEnabled",
-  "domainReplaceUiEnabled",
-  "domainScoreUiEnabled",
-] as const satisfies readonly ServerPresetValueKey[];
+export type ServerPresetFieldControl = "toggle" | "value";
+
+export type ServerPresetField = {
+  key: ServerPresetValueKey;
+  domId: string;
+  control: ServerPresetFieldControl;
+};
+
+export const SERVER_PRESET_FIELDS: readonly ServerPresetField[] = [
+  { key: "streamingEnabled", domId: "streaming-enabled", control: "toggle" },
+  { key: "streamingAutoRetry", domId: "streaming-auto-retry", control: "toggle" },
+  { key: "streamingMaxRetries", domId: "streaming-max-retries", control: "value" },
+  { key: "rateLimitEnabled", domId: "rate-limit-enabled", control: "toggle" },
+  { key: "rateLimitBurstWindow", domId: "rate-limit-burst-window", control: "value" },
+  { key: "rateLimitBurstMax", domId: "rate-limit-burst-max", control: "value" },
+  { key: "rateLimitLongWindow", domId: "rate-limit-long-window", control: "value" },
+  { key: "rateLimitLongMax", domId: "rate-limit-long-max", control: "value" },
+  { key: "rateLimitSuggestEnabled", domId: "rate-limit-suggest-enabled", control: "toggle" },
+  { key: "rateLimitSuggestBurstWindow", domId: "rate-limit-suggest-burst-window", control: "value" },
+  { key: "rateLimitSuggestBurstMax", domId: "rate-limit-suggest-burst-max", control: "value" },
+  { key: "rateLimitSuggestLongWindow", domId: "rate-limit-suggest-long-window", control: "value" },
+  { key: "rateLimitSuggestLongMax", domId: "rate-limit-suggest-long-max", control: "value" },
+  { key: "acDebounceMs", domId: "ac-debounce-ms", control: "value" },
+  { key: "imageProxyAllowLocal", domId: "image-proxy-allow-local", control: "toggle" },
+  { key: "honeypotEnabled", domId: "honeypot-enabled", control: "toggle" },
+  { key: "honeypotCssCheck", domId: "honeypot-css-check", control: "toggle" },
+  { key: "honeypotBanDuration", domId: "honeypot-ban-duration", control: "value" },
+  { key: "apiKeySearchEnabled", domId: "api-key-search-enabled", control: "toggle" },
+  { key: "apiKeySuggestEnabled", domId: "api-key-suggest-enabled", control: "toggle" },
+  { key: "degoogIndexerEnabled", domId: "degoog-indexer-enabled", control: "toggle" },
+  { key: "domainBlockUiEnabled", domId: "domain-block-ui-enabled", control: "toggle" },
+  { key: "domainReplaceUiEnabled", domId: "domain-replace-ui-enabled", control: "toggle" },
+  { key: "domainScoreUiEnabled", domId: "domain-score-ui-enabled", control: "toggle" },
+] as const;
+
+export const PRESET_FIELD_DOM_IDS: Partial<Record<ServerPresetValueKey, string>> =
+  Object.fromEntries(SERVER_PRESET_FIELDS.map((field) => [field.key, field.domId]));
+
+export const PRESET_TOGGLE_KEYS: ReadonlySet<ServerPresetValueKey> = new Set(
+  SERVER_PRESET_FIELDS.filter((field) => field.control === "toggle").map(
+    (field) => field.key,
+  ),
+);
 
 export const SERVER_SETTINGS_PRESETS: readonly ServerSettingsPreset[] = [
   {
