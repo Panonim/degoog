@@ -1,5 +1,5 @@
 import type { ShortcutBinding, ShortcutKind } from "../../shared/shortcuts";
-import type { Shortcut } from "../utils/keyboard-shortcuts";
+import { eventKey, type Shortcut } from "../utils/keyboard-shortcuts";
 
 const PURE_MODIFIERS = new Set(["Control", "Alt", "Shift", "Meta"]);
 
@@ -17,7 +17,7 @@ export const isModifierOnly = (e: KeyboardEvent): boolean =>
   PURE_MODIFIERS.has(e.key);
 
 export const eventToBinding = (e: KeyboardEvent): ShortcutBinding => ({
-  key: e.key,
+  key: eventKey(e),
   ctrl: e.ctrlKey,
   meta: e.metaKey,
   alt: e.altKey,
