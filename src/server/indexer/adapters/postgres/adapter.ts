@@ -1,5 +1,11 @@
 import postgres from "postgres";
-import type { IndexerAdapter, UrlRow, HitRow, TypeCounts, ExportRow } from "../../types/adapter";
+import type {
+  IndexerAdapter,
+  UrlRow,
+  HitRow,
+  TypeCounts,
+  ExportRow,
+} from "../../types/adapter";
 import type { IndexRow } from "../../recorders";
 import type { IndexerConfig } from "../../types/config";
 import { safeSlug } from "../../shared/safe-type";
@@ -30,7 +36,10 @@ export class PgAdapter implements IndexerAdapter {
           AND table_schema NOT IN ('public', 'information_schema', 'pg_catalog')
       `;
       for (const row of rows) this._types.add(row.table_schema);
-      logger.info("indexer", `postgres adapter booted, found types: [${Array.from(this._types).join(", ")}]`);
+      logger.info(
+        "indexer",
+        `postgres adapter booted, found types: [${Array.from(this._types).join(", ")}]`,
+      );
     } catch (err) {
       logger.error("indexer", "postgres adapter boot failed", err);
       throw err;
@@ -40,7 +49,14 @@ export class PgAdapter implements IndexerAdapter {
   async open(type: string): Promise<void> {
     const schema = safeSlug(type);
     if (this._types.has(schema)) return;
+
     await this._sql.begin(async (tx) => initPgSchema(tx, schema));
+
+    await this._sql`
+      CREATE INDEX CONCURRENTLY IF NOT EXISTS ${this._sql(`idx_${schema}_hits_url_id`)}
+      ON ${this._sql(schema)}.query_hits (url_id)
+    `;
+
     this._types.add(schema);
   }
 
@@ -56,7 +72,7 @@ export class PgAdapter implements IndexerAdapter {
     }
   }
 
-  async checkpoint(_type: string): Promise<void> { }
+  async checkpoint(_type: string): Promise<void> {}
 
   async writeBatch(type: string, rows: IndexRow[], now: number): Promise<void> {
     const schema = safeSlug(type);
@@ -98,7 +114,10 @@ export class PgAdapter implements IndexerAdapter {
     });
   }
 
-  async importRows(type: string, rows: ExportRow[]): Promise<{ urls: number; hits: number }> {
+  async importRows(
+    type: string,
+    rows: ExportRow[],
+  ): Promise<{ urls: number; hits: number }> {
     const schema = safeSlug(type);
     await this.open(type);
     let urlsInserted = 0;
@@ -123,9 +142,12 @@ export class PgAdapter implements IndexerAdapter {
           `;
           if (urlRows.length > 0) urlsInserted++;
 
-          const [existingUrl] = urlRows.length > 0
-            ? urlRows
-            : await tx<{ id: number }[]>`SELECT id FROM ${tx(schema)}.urls WHERE url_norm = ${row.url_norm}`;
+          const [existingUrl] =
+            urlRows.length > 0
+              ? urlRows
+              : await tx<
+                  { id: number }[]
+                >`SELECT id FROM ${tx(schema)}.urls WHERE url_norm = ${row.url_norm}`;
 
           if (!existingUrl) continue;
 
@@ -145,7 +167,12 @@ export class PgAdapter implements IndexerAdapter {
     return { urls: urlsInserted, hits: hitsInserted };
   }
 
-  async queryExact(type: string, queryNorm: string, limit: number, offset = 0): Promise<UrlRow[]> {
+  async queryExact(
+    type: string,
+    queryNorm: string,
+    limit: number,
+    offset = 0,
+  ): Promise<UrlRow[]> {
     const schema = safeSlug(type);
     try {
       return await this._sql<UrlRow[]>`
@@ -163,7 +190,12 @@ export class PgAdapter implements IndexerAdapter {
     }
   }
 
-  async queryFuzzy(type: string, queryNorm: string, limit: number, offset = 0): Promise<UrlRow[]> {
+  async queryFuzzy(
+    type: string,
+    queryNorm: string,
+    limit: number,
+    offset = 0,
+  ): Promise<UrlRow[]> {
     const schema = safeSlug(type);
     const pgExpr = queryNorm
       .split(/\s+/)
@@ -328,12 +360,28 @@ export class PgAdapter implements IndexerAdapter {
 
   async deleteHitsForType(type: string, ids: number[]): Promise<void> {
     if (ids.length === 0) return;
+
     const schema = safeSlug(type);
+
     await this._sql.begin(async (tx) => {
-      await tx`DELETE FROM ${tx(schema)}.query_hits WHERE id = ANY(${ids})`;
       await tx`
-        DELETE FROM ${tx(schema)}.urls
-        WHERE id NOT IN (SELECT url_id FROM ${tx(schema)}.query_hits)
+        WITH deleted_hits AS (
+          DELETE FROM ${tx(schema)}.query_hits
+          WHERE id = ANY(${ids})
+          RETURNING url_id
+        ),
+        affected_urls AS (
+          SELECT DISTINCT url_id
+          FROM deleted_hits
+        )
+        DELETE FROM ${tx(schema)}.urls u
+        USING affected_urls a
+        WHERE u.id = a.url_id
+          AND NOT EXISTS (
+            SELECT 1
+            FROM ${tx(schema)}.query_hits h
+            WHERE h.url_id = u.id
+          )
       `;
     });
   }
