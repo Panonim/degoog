@@ -83,6 +83,22 @@ export async function initStoreTab(
     render();
   }
 
+  function reconcileGrid(grid: HTMLElement, filtered: StoreItem[]): void {
+    const key = (el: Element) =>
+      `${(el as HTMLElement).dataset.repoUrl}::${(el as HTMLElement).dataset.itemPath}`;
+    const oldByKey = new Map(
+      Array.from(grid.children).map((el) => [key(el), el as HTMLElement]),
+    );
+    const nodes = filtered.map((item) => {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = renderItemCard(item, getToken);
+      const newCard = tmp.firstElementChild as HTMLElement;
+      const existing = oldByKey.get(key(newCard));
+      return existing && existing.outerHTML === newCard.outerHTML ? existing : newCard;
+    });
+    grid.replaceChildren(...nodes);
+  }
+
   function render(): void {
     const repoSection = container.querySelector<HTMLElement>(
       ".store-repos-section",
@@ -224,51 +240,8 @@ export async function initStoreTab(
     }
 
     if (grid) {
-      const filtered = filterItems(
-        items,
-        typeFilter,
-        subtypeFilter,
-        searchQuery,
-        selectedRepoUrl,
-        installedFilter,
-      );
-      grid.innerHTML = filtered
-        .map((item) => renderItemCard(item, getToken))
-        .join("");
-      grid
-        .querySelectorAll<HTMLButtonElement>(".store-btn-install")
-        .forEach((btn) => {
-          btn.addEventListener(
-            "click",
-            () => void handleInstall(container, btn, getToken, loadItems, render),
-          );
-        });
-      grid
-        .querySelectorAll<HTMLButtonElement>(".store-btn-uninstall")
-        .forEach((btn) => {
-          btn.addEventListener(
-            "click",
-            () => void handleUninstall(btn, getToken, loadItems, render),
-          );
-        });
-      grid
-        .querySelectorAll<HTMLButtonElement>(".store-btn-update")
-        .forEach((btn) => {
-          btn.addEventListener(
-            "click",
-            () => void handleUpdate(container, btn, getToken, loadItems, render),
-          );
-        });
-      grid
-        .querySelectorAll<HTMLButtonElement>(".store-btn-delete")
-        .forEach((btn) => {
-          btn.addEventListener("click", () => {
-            if (btn.dataset.untracked === "true")
-              void handleDeleteUntracked(btn, getToken, loadItems, render);
-            else
-              void handleUninstall(btn, getToken, loadItems, render);
-          });
-        });
+      const filtered = filterItems(items, typeFilter, subtypeFilter, searchQuery, selectedRepoUrl, installedFilter);
+      reconcileGrid(grid, filtered);
     }
 
     const updatesPanel = container.querySelector<HTMLElement>(
@@ -328,6 +301,23 @@ export async function initStoreTab(
   }
 
   container.innerHTML = getStoreTabHtml();
+
+  container.querySelector<HTMLElement>(".store-catalog-grid")?.addEventListener("click", (e) => {
+    const t = e.target as HTMLElement;
+    const installBtn = t.closest<HTMLButtonElement>(".store-btn-install");
+    const uninstallBtn = t.closest<HTMLButtonElement>(".store-btn-uninstall");
+    const updateBtn = t.closest<HTMLButtonElement>(".store-btn-update");
+    const deleteBtn = t.closest<HTMLButtonElement>(".store-btn-delete");
+    if (installBtn) void handleInstall(container, installBtn, getToken, loadItems, render);
+    if (uninstallBtn) void handleUninstall(uninstallBtn, getToken, loadItems, render);
+    if (updateBtn) void handleUpdate(container, updateBtn, getToken, loadItems, render);
+    if (deleteBtn) {
+      if (deleteBtn.dataset.untracked === "true")
+        void handleDeleteUntracked(deleteBtn, getToken, loadItems, render);
+      else
+        void handleUninstall(deleteBtn, getToken, loadItems, render);
+    }
+  });
 
   initLightbox(container, getToken);
 
