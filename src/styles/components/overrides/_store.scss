@@ -207,8 +207,8 @@
   align-items: center;
   justify-content: space-between;
   gap: $space-3;
-  padding: $space-2 $space-3;
-  background: transparent;
+  padding: $space-3;
+  background: var(--bg);
   border-radius: $radius-md;
 }
 
