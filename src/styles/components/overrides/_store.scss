@@ -476,6 +476,7 @@
   border-radius: $radius-md;
   color: $primary;
   cursor: pointer;
+  flex: none;
   font-size: $font-size-md;
   padding: $space-2 $space-3;
   transition: opacity $transition-fast;

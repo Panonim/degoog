@@ -85,7 +85,7 @@ export async function initStoreTab(
 
   function reconcileGrid(grid: HTMLElement, filtered: StoreItem[]): void {
     const key = (el: Element) =>
-      `${(el as HTMLElement).dataset.repoUrl}::${(el as HTMLElement).dataset.itemPath}`;
+      `${(el as HTMLElement).dataset.repoUrl}::${(el as HTMLElement).dataset.itemPath}::${(el as HTMLElement).dataset.type}`;
     const oldByKey = new Map(
       Array.from(grid.children).map((el) => [key(el), el as HTMLElement]),
     );
@@ -205,7 +205,7 @@ export async function initStoreTab(
             count: filteredForType.filter(
               (i) =>
                 (typeFilter === "plugin" && i.pluginType === id) ||
-                (typeFilter === "engine" && i.engineType === id),
+                (typeFilter === "engine" && (i.engineTypes ?? (i.engineType ? [i.engineType] : [])).includes(id)),
             ).length,
           })),
         ]
